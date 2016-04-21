@@ -51,59 +51,45 @@ class AmusementPark:
 	def getRuntime(self):
 		return self.runtime
 
-	def checkAvailableTime(self, index):
-		return True if tCurrent+self.mintime < self.rangetime[index]['start'] else False
-
 	def checkAvailableKuota(self, index):
 		return True if self.getShiftKuota(index) > 0 else False
 
 	def addQueue(self, index):
-		if self.checkAvailable(index) and self.checkAvailableKuota(index):
-			if self.kuota[index] < 1 :
-				self.kuota[index] = self.kuota[index] - 1
-			else :
-				print "Maaf yang anda pilih sudah tidak tersedia"	
+		if self.checkAvailableKuota(index):
+			self.kuota[index] = self.kuota[index] - 1
 		else :
 			print "Maaf yang anda pilih sudah tidak tersedia"
 
 class QuickPass:
-	def __init__(self, tSystem):
+	def __init__(self, tSystem, park):
 		self.tRun = tSystem
 		self.vq = 0
 		self.rangetime = {}
 		self.availabletime = []
-		self.mintime = 20
 		self.treshold = 0.3
+		self.mintime = 20
+		self.initRangeTime()
+		self.initAvailableShift(park)
 
-	def checkAvailable(self, index):
-		return True if tCurrent+self.mintime < self.rangetime[index]['start'] else False
-
-	def setupAvailableShift(self):
-		if self.rangetime != []:
-			for i in self.rangetime:
-				if self.checkAvailable(i):
-					self.availabletime.append(i)
-		else :
-			print "Maaf range waktu belum ada"
+	def initAvailableShift(self, park):
+		for i in self.rangetime:
+			if self.checkAvailableTime(i) and park.checkAvailableKuota(i):
+				self.availabletime.append(i)
 		
-	def setupRangeTime(self):
+	def initRangeTime(self):
 		for i in range(1,len(data)):
 			self.rangetime[i] = {
 				'start' : data[i]['start'],
 				'finish' : data[i]['end'],
 			}
 
-	def start(self):
-		self.setupRangeTime()
-		self.setupAvailableShift()
+	def checkAvailableTime(self, index):
+		return True if tCurrent + self.mintime < self.rangetime[index]['start'] else False
 
-	def showAvailableShift(self):
-		if self.availabletime != []: 
-			ap = AmusementPark()
-			for i in self.availabletime:
-				print i, '|', self.rangetime[i]['start'], '-', self.rangetime[i]['finish'], '|', ap.getKuota(i)
-		else :
-			print "Maaf waktu tersedia belum ada"
+	def showAvailableShift(self, park):
+		for i in self.availabletime:
+			if park.checkAvailableKuota(i):
+				print i, '|', self.rangetime[i]['start'], '-', self.rangetime[i]['finish'], '|', park.getShiftKuota(i)
 
 	def getKuota(self):
 		return self.kuota
@@ -111,18 +97,9 @@ class QuickPass:
 	def doQuickpass():
 		self.showAvailableShift()
 
-qp = QuickPass(0)
-tCurrent = 910
 ap = AmusementPark()
-qp.start()
-# print qp.rangetime[3]
-# print qp.availabletime
-# qp.showAvailableShift()
-
-# simulation = {}
-# for i in range(10):
-# 	simulation[i] = np.random.exponential(lamda,100)
+qp = QuickPass(0, ap)
+tCurrent = 910
+qp.showAvailableShift(ap)
 
 print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri \t Nomor Antrian"
-
-# print simulation
