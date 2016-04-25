@@ -216,9 +216,9 @@ tClose = 1700
 ap = AmusementPark()
 time = Time()
 tCurrent = 900
-time.deconvertingTime(tCurrent, True)
-qp = QuickPass(ap, time.getTime(), 100)
-simulation = np.random.exponential(lamda, 500)
+time.deconvertingTime(tCurrent, True) #time initialization
+qp = QuickPass(ap, time.getTime(), 100) #QP initialization with 100% acceptance
+simulation = np.random.exponential(lamda, 500) #simulation initialization
 counter = 0
 
 for i in range(len(simulation)):
