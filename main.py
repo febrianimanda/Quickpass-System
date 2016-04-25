@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+import random
 
 data = {}
 
@@ -48,9 +49,9 @@ class Time:
 				return temp[0], temp[1] + temp[2]
 		elif len(temp) == 4:
 			if init:
-				self.initTime(temp[0] + temp[1], temp[2] + temp[3])
+				self.initTime(temp[0]*10 + temp[1], temp[2]*10 + temp[3])
 			else:
-				return temp[0] + temp[1], temp[2] + temp[3]
+				return temp[0]*10 + temp[1], temp[2]*10 + temp[3]
 		else:
 			print "deconverting gagal"
 			return 0
@@ -87,22 +88,28 @@ class AmusementPark:
 		for i in range(0, len(self.runtime)):
 			self.shiftkuota[i] = self.kuota
 
-	def getShiftKuota(self, index):
-		return self.shiftkuota[index]
+	def getShiftKuota(self, index=-1):
+		if index > 0:
+			return self.shiftkuota[index]
+		else:
+			return self.shiftkuota
 
 	def initAllPlayingTime(self):
 		for i in data:
 			self.runtime[i] = data[i]['play']
 
-	def getRuntime(self):
+	def getAllRuntime(self):
 		return self.runtime
+
+	def getRuntime(self, index):
+		return self.runtime[index]
 
 	def checkAvailableKuota(self, index):
 		return True if self.getShiftKuota(index) > 0 else False
 
 	def addQueue(self, index):
 		if self.checkAvailableKuota(index):
-			self.kuota[index] = self.kuota[index] - 1
+			self.shiftkuota[index] = self.shiftkuota[index] - 1
 		else :
 			print "Maaf yang anda pilih sudah tidak tersedia"
 
@@ -110,9 +117,12 @@ class AmusementPark:
 		return self.kuota
 
 	def getIndexByTime(self, time):
-		for i in range(len(self.rangetime)):
-			if time < self.rangetime[i]:
+		for i in range(len(self.runtime)):
+			if time < self.runtime[i]:
 				return i
+
+	def calcWaitingTime(self, indexRuntime, time):
+		return self.getRuntime(indexRuntime) - time
 
 class QuickPass:
 	def __init__(self, park, tCurrent, percentage):
@@ -150,13 +160,20 @@ class QuickPass:
 		index = []
 		for i in range(1, len(self.rangetime) + 1):
 			if tCurrent + self.mintime < self.rangetime[i]['start']:
-				index.append(i)
+				if self.checkShiftAvailable(i): 
+					index.append(i)
 		return index
+
+	def checkShiftAvailable(self, index):
+		return self.queue[index] < self.getKuota()
 
 	def showAvailableShift(self, park):
 		for i in self.availabletime:
 			if park.checkAvailableKuota(i):
 				print i, '|', self.rangetime[i]['start'], '-', self.rangetime[i]['finish'], '|', park.getShiftKuota(i)
+
+	def getShiftKuota(self, index):
+		return self.queue[index]
 
 	def getKuotaPercentage(self):
 		return self.kuotapercentage
@@ -173,8 +190,25 @@ class QuickPass:
 	def getKuota(self):
 		return self.kuota
 
-	def getRangetime(self):
+	def getAllRangetime(self):
 		return self.rangetime
+
+	def getRangetime(self, index):
+		return self.rangetime[index]
+
+	def getShiftTime(self, index):
+		return self.rangetime[i]
+
+	def getTicket(self, time):
+		avatime = self.getIndexAvailableTime(time)
+		# print "time:", time
+		# print "avatime :", avatime
+		if avatime != []:
+			randQueue = random.randint(avatime[0], avatime[-1])
+			# print "rand get ticket:", randQueue
+			self.addQueue(randQueue)
+			return randQueue
+		return 0
 
 tOpen = 900
 lamda = 1
@@ -185,29 +219,46 @@ tCurrent = 900
 time.deconvertingTime(tCurrent, True)
 qp = QuickPass(ap, time.getTime(), 100)
 simulation = np.random.exponential(lamda, 500)
-
-print ap.getRuntime()
-print qp.getRangetime()
-print qp.getIndexAvailableTime(time.getTime())
-qp.addQueue(14)
-print qp.getQueue()
-quit()
+counter = 0
 
 for i in range(len(simulation)):
+	time.runtiming(simulation[i])
+	quick = False
 	if time.getTime() > tClose:
 		break
 	else:
-		if ap.chanceQuickPass() > qp.treshold:
-			ap.addQueue()
+		mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
+		# print "Must : ", mustNQ
+		if ap.chanceQuickPass() > qp.treshold or mustNQ:
+			randQueue = ap.getIndexByTime(time.getTime())
+			if ap.getShiftKuota(randQueue) > 1:
+				ap.addQueue(randQueue)
+			else:
+				quick = True
+				randQueue = qp.getTicket(time.getTime())
+				if randQueue > 0:
+					ap.addQueue(randQueue)
+				else:
+					print "Maaf waktu yang tersedia sudah tidak ada"
+					break
 		else:
-			ava = qp.getIndexAvailableTime(time.getTime())
+			quick = True
+			randQueue = qp.getTicket(time.getTime())
+			if randQueue > 0:
+				ap.addQueue(randQueue)
+			else:
+				print "Maaf waktu yang tersedia sudah tidak ada"
+				break
+	if quick == True:
+		rtime = qp.getRangetime(randQueue)
+		backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
+	else:
+		backrangetime = "-"
+	print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
+	print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
+	counter += 1
 
-		time.runtiming(simulation[i])
-		print i,'-',
-		if time.getHour < 10:
-			print '0',time.getHour(),':',time.getMinutes()
-		else:
-			print time.getHour(),':',time.getMinutes()
-
-print "Maaf wahana sudah tutup"
-print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri \t Nomor Antrian"
+# print time.getTime()
+print "==================="
+print "Wahana tutup"
+print "Jumlah Pengunjung Hari ini : ", counter
