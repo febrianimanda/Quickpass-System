@@ -210,29 +210,28 @@ class QuickPass:
 			return randQueue
 		return 0
 
-tOpen = 900
-lamda = 1
-tClose = 1700
-ap = AmusementPark()
-time = Time()
-tCurrent = 900
-time.deconvertingTime(tCurrent, True) #time initialization
-qp = QuickPass(ap, time.getTime(), 100) #QP initialization with 100% acceptance
-simulation = np.random.exponential(lamda, 500) #simulation initialization
-counter = 0
-
-for i in range(len(simulation)):
-	time.runtiming(simulation[i])
-	quick = False
-	if time.getTime() > tClose:
-		break
-	else:
-		mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
-		# print "Must : ", mustNQ
-		if ap.chanceQuickPass() > qp.treshold or mustNQ:
-			randQueue = ap.getIndexByTime(time.getTime())
-			if ap.getShiftKuota(randQueue) > 1:
-				ap.addQueue(randQueue)
+def main(qp, ap, time):
+	counter = 0
+	for i in range(len(simulation)):
+		time.runtiming(simulation[i])
+		quick = False
+		if time.getTime() > tClose:
+			break
+		else:
+			mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
+			# print "Must : ", mustNQ
+			if ap.chanceQuickPass() > qp.treshold or mustNQ:
+				randQueue = ap.getIndexByTime(time.getTime())
+				if ap.getShiftKuota(randQueue) > 1:
+					ap.addQueue(randQueue)
+				else:
+					quick = True
+					randQueue = qp.getTicket(time.getTime())
+					if randQueue > 0:
+						ap.addQueue(randQueue)
+					else:
+						print "Maaf waktu yang tersedia sudah tidak ada"
+						break
 			else:
 				quick = True
 				randQueue = qp.getTicket(time.getTime())
@@ -241,24 +240,37 @@ for i in range(len(simulation)):
 				else:
 					print "Maaf waktu yang tersedia sudah tidak ada"
 					break
+		if quick == True:
+			rtime = qp.getRangetime(randQueue)
+			backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
 		else:
-			quick = True
-			randQueue = qp.getTicket(time.getTime())
-			if randQueue > 0:
-				ap.addQueue(randQueue)
-			else:
-				print "Maaf waktu yang tersedia sudah tidak ada"
-				break
-	if quick == True:
-		rtime = qp.getRangetime(randQueue)
-		backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
-	else:
-		backrangetime = "-"
-	print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
-	print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
-	counter += 1
+			backrangetime = "-"
+		print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
+		print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
+		counter += 1
 
-# print time.getTime()
-print "==================="
-print "Wahana tutup"
-print "Jumlah Pengunjung Hari ini : ", counter
+	# print time.getTime()
+	print ""
+	print "Wahana tutup"
+	print "Jumlah Pengunjung Hari ini : ", counter
+	return counter
+
+tOpen = 900
+lamda = 1
+tClose = 1700
+ap1 = AmusementPark()
+ap2 = AmusementPark()
+time = Time()
+tCurrent = 900
+time.deconvertingTime(tCurrent, True) #time initialization
+qp1 = QuickPass(ap1, time.getTime(), 100) #QP initialization with 100% acceptance
+simulation = np.random.exponential(lamda, 500) #simulation initialization
+qp2 = QuickPass(ap2, time.getTime(), 90)
+
+c1 = main(qp1, ap1, time)
+c2 = main(qp2, ap2, time)
+print ""
+print "================"
+print ""
+print "Jumlah Pengunjung dengan QP 100% : ", c1
+print "Jumlah Pengunjung dengan QP 80% : ", c2
