@@ -210,20 +210,32 @@ class QuickPass:
 			return randQueue
 		return 0
 
-def main(qp, ap, time):
+def main(qp, ap, time, i):
 	counter = 0
-	for i in range(len(simulation)):
-		time.runtiming(simulation[i])
-		quick = False
-		if time.getTime() > tClose:
-			break
-		else:
-			mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
-			# print "Must : ", mustNQ
-			if ap.chanceQuickPass() > qp.treshold or mustNQ:
-				randQueue = ap.getIndexByTime(time.getTime())
-				if ap.getShiftKuota(randQueue) > 1:
-					ap.addQueue(randQueue)
+	with open('results'+str(i)+'.csv', 'w') as csvfile:
+		fieldnames = ['Pengunjung Ke-', 'Waktu Kedatangan (Jam)', 'Rentang Waktu Kedatangan (Menit)', 'Pilihan Antrian', 'Interval Waktu Kembali', 'Mulai Layanan', 'Lama Waktu Antri (Menit)']
+		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+		writer.writeheader()
+		for i in range(len(simulation)):
+			time.runtiming(simulation[i])
+			quick = False
+			if time.getTime() > tClose:
+				break
+			else:
+				mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
+				# print "Must : ", mustNQ
+				if ap.chanceQuickPass() > qp.treshold or mustNQ:
+					randQueue = ap.getIndexByTime(time.getTime())
+					if ap.getShiftKuota(randQueue) > 1:
+						ap.addQueue(randQueue)
+					else:
+						quick = True
+						randQueue = qp.getTicket(time.getTime())
+						if randQueue > 0:
+							ap.addQueue(randQueue)
+						else:
+							print "Maaf waktu yang tersedia sudah tidak ada"
+							break
 				else:
 					quick = True
 					randQueue = qp.getTicket(time.getTime())
@@ -232,22 +244,16 @@ def main(qp, ap, time):
 					else:
 						print "Maaf waktu yang tersedia sudah tidak ada"
 						break
+			if quick == True:
+				rtime = qp.getRangetime(randQueue)
+				backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
 			else:
-				quick = True
-				randQueue = qp.getTicket(time.getTime())
-				if randQueue > 0:
-					ap.addQueue(randQueue)
-				else:
-					print "Maaf waktu yang tersedia sudah tidak ada"
-					break
-		if quick == True:
-			rtime = qp.getRangetime(randQueue)
-			backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
-		else:
-			backrangetime = "-"
-		print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
-		print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
-		counter += 1
+				backrangetime = "-"
+
+			writer.writerow({'Pengunjung Ke-': counter, 'Waktu Kedatangan (Jam)': "%0.f" % time.getTime(), 'Rentang Waktu Kedatangan (Menit)': "%2.f" % simulation[i], 'Pilihan Antrian':"Normal" if quick == False else "QuickPass", 'Interval Waktu Kembali':backrangetime, 'Mulai Layanan':ap.getRuntime(randQueue), 'Lama Waktu Antri (Menit)':"%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"})
+			print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
+			print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
+			counter += 1
 
 	# print time.getTime()
 	print ""
@@ -261,14 +267,19 @@ tClose = 1700
 ap1 = AmusementPark()
 ap2 = AmusementPark()
 time = Time()
+time2 = Time()
 tCurrent = 900
 time.deconvertingTime(tCurrent, True) #time initialization
+time2.deconvertingTime(tCurrent, True) #time initialization
+
 qp1 = QuickPass(ap1, time.getTime(), 100) #QP initialization with 100% acceptance
 simulation = np.random.exponential(lamda, 500) #simulation initialization
-qp2 = QuickPass(ap2, time.getTime(), 90)
+qp2 = QuickPass(ap2, time2.getTime(), 90)
 
-c1 = main(qp1, ap1, time)
-c2 = main(qp2, ap2, time)
+print "time:",time.getTime()
+c1 = main(qp1, ap1, time, 1)
+print "time2:",time2.getTime()
+c2 = main(qp2, ap2, time2, 2)
 print ""
 print "================"
 print ""
