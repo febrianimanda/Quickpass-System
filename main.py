@@ -110,14 +110,16 @@ class AmusementPark:
 	def addQueue(self, index):
 		if self.checkAvailableKuota(index):
 			self.shiftkuota[index] = self.shiftkuota[index] - 1
+			return True
 		else :
 			print "Maaf yang anda pilih sudah tidak tersedia"
+			return False
 
 	def getKuota(self):
 		return self.kuota
 
 	def getIndexByTime(self, time):
-		for i in range(len(self.runtime)):
+		for i in xrange(len(self.runtime)):
 			if time < self.runtime[i]:
 				return i
 
@@ -204,7 +206,7 @@ class QuickPass:
 		# print "time:", time
 		# print "avatime :", avatime
 		if avatime != []:
-			randQueue = random.randint(avatime[0], avatime[-1])
+			randQueue = random.choice(avatime)
 			# print "rand get ticket:", randQueue
 			self.addQueue(randQueue)
 			return randQueue
@@ -219,41 +221,49 @@ def main(qp, ap, time, i):
 		for i in range(len(simulation)):
 			time.runtiming(simulation[i])
 			quick = False
+			canPlay = True
 			if time.getTime() > tClose:
 				break
 			else:
 				mustNQ = True if qp.getIndexAvailableTime(time.getTime()) == [] else False
-				# print "Must : ", mustNQ
-				if ap.chanceQuickPass() > qp.treshold or mustNQ:
+				chance = ap.chanceQuickPass()
+				if chance > qp.treshold or mustNQ:
 					randQueue = ap.getIndexByTime(time.getTime())
-					if ap.getShiftKuota(randQueue) > 1:
+					avakuota = ap.getShiftKuota()
+					if avakuota.get(randQueue) > 0:
 						ap.addQueue(randQueue)
 					else:
 						quick = True
 						randQueue = qp.getTicket(time.getTime())
-						if randQueue > 0:
-							ap.addQueue(randQueue)
+						print randQueue
+						if randQueue != 0:
+							if ap.addQueue(randQueue) == False:
+								canPlay = False
 						else:
-							print "Maaf waktu yang tersedia sudah tidak ada"
-							break
+							canPlay = False
 				else:
 					quick = True
 					randQueue = qp.getTicket(time.getTime())
-					if randQueue > 0:
-						ap.addQueue(randQueue)
+					print randQueue
+					if randQueue != 0:
+						if ap.addQueue(randQueue) == False:
+								canPlay = False
 					else:
-						print "Maaf waktu yang tersedia sudah tidak ada"
-						break
-			if quick == True:
-				rtime = qp.getRangetime(randQueue)
-				backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
-			else:
-				backrangetime = "-"
-
-			writer.writerow({'Pengunjung Ke-': counter, 'Waktu Kedatangan (Jam)': "%0.f" % time.getTime(), 'Rentang Waktu Kedatangan (Menit)': "%2.f" % simulation[i], 'Pilihan Antrian':"Normal" if quick == False else "QuickPass", 'Interval Waktu Kembali':backrangetime, 'Mulai Layanan':ap.getRuntime(randQueue), 'Lama Waktu Antri (Menit)':"%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"})
+						canPlay = False
+			if canPlay:
+				if quick == True:
+					rtime = qp.getRangetime(randQueue)
+					backrangetime = str(rtime['start'])+"-"+str(rtime['finish'])
+				else:
+					backrangetime = "-"
 			print "Pengunjung ke- \t Waktu Kedatangan(Jam) \t Rentang Waktu kedatangan (Menit) \t Pilihan Antrian \t Interval Waktu Kembali \t Mulai Layanan \t Lama Waktu Antri(menit)"
-			print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
-			counter += 1
+			if canPlay:
+				print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "Normal" if quick == False else "QuickPass", "\t", backrangetime, "\t", ap.getRuntime(randQueue), "\t", "%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"
+				writer.writerow({'Pengunjung Ke-': i+1, 'Waktu Kedatangan (Jam)': "%0.f" % time.getTime(), 'Rentang Waktu Kedatangan (Menit)': "%2.f" % simulation[i], 'Pilihan Antrian':"Normal" if quick == False else "QuickPass", 'Interval Waktu Kembali':backrangetime, 'Mulai Layanan':ap.getRuntime(randQueue), 'Lama Waktu Antri (Menit)':"%2.f" % ap.calcWaitingTime(randQueue, time.getTime()) if quick == False else "-"})
+				counter += 1
+			else:
+				print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "-", "\t", '-', "\t", '-', "\t", "-"
+				writer.writerow({'Pengunjung Ke-': i+1, 'Waktu Kedatangan (Jam)': "%0.f" % time.getTime(), 'Rentang Waktu Kedatangan (Menit)': "%2.f" % simulation[i], 'Pilihan Antrian':"-", 'Interval Waktu Kembali':'-', 'Mulai Layanan':'-', 'Lama Waktu Antri (Menit)':"-"})
 
 	# print time.getTime()
 	print ""
@@ -276,9 +286,7 @@ qp1 = QuickPass(ap1, time.getTime(), 100) #QP initialization with 100% acceptanc
 simulation = np.random.exponential(lamda, 500) #simulation initialization
 qp2 = QuickPass(ap2, time2.getTime(), 90)
 
-print "time:",time.getTime()
 c1 = main(qp1, ap1, time, 1)
-print "time2:",time2.getTime()
 c2 = main(qp2, ap2, time2, 2)
 print ""
 print "================"
