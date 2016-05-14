@@ -130,7 +130,7 @@ class QuickPass:
 	def __init__(self, park, tCurrent, percentage):
 		self.rangetime = {}
 		self.availabletime = []
-		self.treshold = 0.3
+		self.treshold = 0.2
 		self.mintime = 20
 		self.kuotapercentage = percentage
 		self.queue = {}
@@ -212,9 +212,9 @@ class QuickPass:
 			return randQueue
 		return 0
 
-def main(qp, ap, time, i):
+def main(qp, ap, time, x):
 	counter = 0
-	with open('results'+str(i)+'.csv', 'w') as csvfile:
+	with open('results31-'+str(x)+'.csv', 'w') as csvfile:
 		fieldnames = ['Pengunjung Ke-', 'Waktu Kedatangan (Jam)', 'Rentang Waktu Kedatangan (Menit)', 'Pilihan Antrian', 'Interval Waktu Kembali', 'Mulai Layanan', 'Lama Waktu Antri (Menit)']
 		writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 		writer.writeheader()
@@ -265,7 +265,6 @@ def main(qp, ap, time, i):
 				print i+1, "\t", "%0.f" % time.getTime(), "\t", "%2.f" % simulation[i], "\t", "-", "\t", '-', "\t", '-', "\t", "-"
 				writer.writerow({'Pengunjung Ke-': i+1, 'Waktu Kedatangan (Jam)': "%0.f" % time.getTime(), 'Rentang Waktu Kedatangan (Menit)': "%2.f" % simulation[i], 'Pilihan Antrian':"-", 'Interval Waktu Kembali':'-', 'Mulai Layanan':'-', 'Lama Waktu Antri (Menit)':"-"})
 
-	# print time.getTime()
 	print ""
 	print "Wahana tutup"
 	print "Jumlah Pengunjung Hari ini : ", counter
@@ -276,20 +275,42 @@ lamda = 1
 tClose = 1700
 ap1 = AmusementPark()
 ap2 = AmusementPark()
+ap3 = AmusementPark()
 time = Time()
 time2 = Time()
+time3 = Time()
+
 tCurrent = 900
 time.deconvertingTime(tCurrent, True) #time initialization
 time2.deconvertingTime(tCurrent, True) #time initialization
+time3.deconvertingTime(tCurrent, True)
 
-qp1 = QuickPass(ap1, time.getTime(), 100) #QP initialization with 100% acceptance
-simulation = np.random.exponential(lamda, 500) #simulation initialization
-qp2 = QuickPass(ap2, time2.getTime(), 90)
+simulation = np.random.exponential(lamda, 300) #simulation initialization
+qp1 = QuickPass(ap1, time.getTime(), 40) #QP initialization with 100% acceptance
+qp2 = QuickPass(ap2, time2.getTime(), 65)
+qp3 = QuickPass(ap3, time3.getTime(), 100)
 
 c1 = main(qp1, ap1, time, 1)
 c2 = main(qp2, ap2, time2, 2)
+c3 = main(qp3, ap3, time3, 3)
+
+
+with open("Output31.txt", "w") as text_file:
+	text_file.write("Kapasitas Quickpass 1: {} \n".format(qp1.kuotapercentage))
+	text_file.write("Jumlah Pengunjung yang ditangani: {} \n".format(c1))
+	text_file.write("Kuota tersisa: {} \n\n".format(ap1.shiftkuota))
+	
+	text_file.write("Kapasitas Quickpass 2: {} \n".format(qp2.kuotapercentage))
+	text_file.write("Jumlah Pengunjung yang ditangani: {} \n".format(c2))
+	text_file.write("Kuota tersisa: {} \n\n".format(ap2.shiftkuota))
+	
+	text_file.write("Kapasitas Quickpass 3: {} \n".format(qp3.kuotapercentage))
+	text_file.write("Jumlah Pengunjung yang ditangani: {} \n".format(c3))
+	text_file.write("Kuota tersisa: {} \n".format(ap3.shiftkuota))
+
 print ""
 print "================"
 print ""
-print "Jumlah Pengunjung dengan QP 100% : ", c1
-print "Jumlah Pengunjung dengan QP 80% : ", c2
+print "Jumlah Pengunjung dengan QP 40% : ", c1
+print "Jumlah Pengunjung dengan QP 65% : ", c2
+print "Jumlah Pengunjung dengan QP 90% : ", c3
